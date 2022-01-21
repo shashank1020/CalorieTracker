@@ -1,0 +1,8 @@
+.reset{
+    display: flex;
+    justify-content: flex-end;
+}
+
+.rangePicker{
+    margin: 5px
+}

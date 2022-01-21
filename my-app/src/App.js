@@ -5,9 +5,10 @@ import {
     Routes,
     Route
 } from "react-router-dom";
-import FoodEntry from "./page/food-entry";
+import FoodEntry from "./page/foodEntry/food-entry";
 import UserContext from "./contexts/user-context";
-import {useState} from "react";
+import React, {useState} from "react";
+import ListEntries from "./page/listFoodEntries/list-food";
 
 function App() {
     const [user, setUser] = useState({});
@@ -18,6 +19,7 @@ function App() {
                 <BrowserRouter>
                     <Routes>
                         <Route path={"/food/new"} element={<FoodEntry/>}/>
+                        <Route path={"/"} element={<ListEntries/>}/>
                     </Routes>
                 </BrowserRouter>
             </UserContext.Provider>
