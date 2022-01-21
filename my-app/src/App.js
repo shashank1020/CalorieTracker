@@ -11,7 +11,7 @@ import React, {useState} from "react";
 import ListEntries from "./page/listFoodEntries/list-food";
 
 function App() {
-    const [user, setUser] = useState({});
+    const [user, setUser] = useState({user: 'user'});
     return (
         <div className="App">
 

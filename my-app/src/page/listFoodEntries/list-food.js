@@ -8,6 +8,7 @@ import {MenuFoldOutlined, MenuUnfoldOutlined} from "@ant-design/icons";
 import AddMeal from "../../components/molecules/addMeal/add-meal";
 import WarningTwoTone from "@ant-design/icons/lib/icons/WarningTwoTone";
 import moment from "moment";
+import CONSTANTS from "../../utils/constants.util";
 
 const EditableCell = ({
                           editing,
@@ -43,6 +44,20 @@ const EditableCell = ({
         </td>
     );
 };
+
+const validateFields = ( dataIndex, title) => {
+    let rules
+    if (dataIndex === 'calorie') {
+        rules = [{required: true, type: 'number', min: 1, max: 2000}]
+    }
+    else if (dataIndex === 'price') {
+        rules = [{required: true, type: 'number', min: 1, max: 5000}]
+    }
+    else
+        rules = [{required: true, message: `Please Input ${title}!`}]
+
+    return rules
+}
 
 const ListEntries = () => {
     const [form] = Form.useForm();
@@ -222,7 +237,7 @@ const ListEntries = () => {
             title: 'Month Amount',
             width: '12%',
             dataIndex: 'monthAmount',
-            editable: true,
+            editable: false,
             align: 'center',
             render(text, record) {
                 return {

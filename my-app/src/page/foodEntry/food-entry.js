@@ -14,6 +14,7 @@ const FoodEntry = (props) => {
     const foodId = props?.id;
     const validateMessages = CONSTANTS.VALIDATION_MESSAGES
 
+    console.log(user)
     useEffect(() => {
         if (props) {
             setName(props.name);
