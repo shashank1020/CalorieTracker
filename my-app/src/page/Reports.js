@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
 import { Pie } from '@ant-design/plots';
-import ReportsService from '../../services/reports-service';
-import { openNotification } from '../../utils';
+import ReportsService from '../services/reports-service';
+import { openNotification } from '../utils';
 
 const Reports = () => {
     const [reportsData, setReportsData] = useState([]);

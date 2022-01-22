@@ -1,19 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import moment from 'moment';
-import WarningTwoTone from '@ant-design/icons/lib/icons/WarningTwoTone';
-import { Button, Row, Form, Input, InputNumber, notification, Popconfirm, Space, Table, Tooltip, Typography, Pagination } from 'antd';
-
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Form, Input, InputNumber, notification, Popconfirm, Space, Table, Tooltip, Typography } from 'antd';
 import getColumnSearchProps from '../../components/atoms/tableFilter/TableColumnFilter';
 import FoodService from '../../services/food-service';
+import RightSidebar from '../../components/molecules/sideNavigation/side-navigation';
 import styles from './listFood.module.css';
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import AddMeal from '../../components/molecules/addMeal/add-meal';
-import { openNotification } from '../../utils';
-import useAuth from '../../hooks/useAuth';
-import useActiveModal from '../../hooks/useActiveModal';
-import modalIds from '../../utils/modalIds';
+import WarningTwoTone from '@ant-design/icons/lib/icons/WarningTwoTone';
+import moment from 'moment';
+import CONSTANTS from '../../utils/constants.util';
 
 const EditableCell = ({ editing, dataIndex, title, inputType, record, index, children, ...restProps }) => {
-    const inputNode = inputType === 'number' ? <InputNumber rules={validateFields(dataIndex)} /> : <Input />;
+    const inputNode = inputType === 'number' ? <InputNumber /> : <Input />;
     return (
         <td {...restProps}>
             {editing ? (
@@ -38,8 +36,7 @@ const EditableCell = ({ editing, dataIndex, title, inputType, record, index, chi
     );
 };
 
-const validateFields = (dataIndex, title = '') => {
-    //TODO: verify...
+const validateFields = (dataIndex, title) => {
     let rules;
     if (dataIndex === 'calorie') {
         rules = [{ required: true, type: 'number', min: 1, max: 2000 }];
@@ -51,109 +48,100 @@ const validateFields = (dataIndex, title = '') => {
 };
 
 const ListEntries = () => {
-    const [user] = useAuth();
-    const [activeModalId, setActiveModalId] = useActiveModal();
     const [form] = Form.useForm();
-    const [foodItems, setFoodItems] = useState([]);
+    const [apiData, setApiData] = useState([]);
+    const originalData = useMemo(() => apiData?.map((d) => ({ key: d?.id, ...d })), [apiData]);
+    const [data, setData] = useState(originalData);
     const [editingKey, setEditingKey] = useState('');
-
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [isNavOpen, setIsNavOpen] = useState(false);
+    const [isAddMealModal, setIsAddMealModal] = useState(false);
+    const [columnFilterData, setColumnFilterData] = useState({ start: '', end: '' });
 
-    const [columnFilterData, setColumnFilterData] = useState({
-        start: '',
-        end: '',
-    });
-
+    const isEditing = (record) => record.key === editingKey;
     let searchInput = useRef(null);
 
-    const fetchFoodItems = React.useCallback(
-        ({ page, columnFilterData }) => {
-            FoodService.fetchFoods({
-                page,
-                startDate: columnFilterData.start,
-                endDate: columnFilterData.end,
-            })
-                .then((res) => {
-                    if (!res.error) {
-                        setFoodItems([...res.data.foodItems]);
-                        setTotalPages(res.data.totalPages);
-                    } else {
-                        throw new Error(res);
-                    }
-                })
-                .catch((e) => {
-                    notification.open({
-                        title: 'Error occurred',
-                        description: e?.message,
-                    });
+    const fetchFoods = async ({ startDate, endDate, page }) => {
+        return await FoodService.fetchFoods({ startDate, endDate, page })
+            .then((res) => res)
+            .catch((e) => {
+                notification.open({
+                    title: 'Error occurred',
+                    description: e?.message,
                 });
-        },
-        [foodItems],
-    );
+            });
+    };
 
     useEffect(() => {
-        fetchFoodItems({ page, columnFilterData });
-    }, [columnFilterData, page]);
+        setData(originalData);
+    }, [originalData]);
+
+    useEffect(() => {
+        fetchFoods({}).then((res) => setApiData(res));
+    }, []);
 
     const handleColumnFilter = (dataIndex, confirm) => {
-        setPage(1);
+        let filteredData = [];
+        if (dataIndex === 'date') {
+            const end = new Date(columnFilterData.end);
+            const start = new Date(columnFilterData.start);
+            filteredData = originalData.filter((eachObj) => {
+                return new Date(eachObj.createdAt) <= end && new Date(eachObj.createdAt) >= start;
+            });
+        }
+        setData(filteredData);
+        setColumnFilterData({ start: '', end: '' });
         confirm();
     };
 
-    const handleDisableEditMode = () => {
+    const cancel = () => {
         setEditingKey('');
     };
 
-    const isValidFoodItem = useCallback((foodItem) => {
-        if (parseInt(foodItem.calorie) < 10 || parseInt(foodItem.calorie) > 1000) {
-            throw new Error('Calorie should be b/w 10 & 1000');
-        }
-        if (foodItem.name.length < 3) {
-            throw new Error('Name must be more than 3 letters');
-        }
-        if (foodItem.price < 10 || foodItem.price > 1000) {
-            throw new Error('Price should be b/w 10 & 1000');
-        }
-    }, []);
+    function onShowSizeChange(current, pageSize) {
+        setPageSize(pageSize);
+    }
 
-    const save = async (_, record) => {
+    const save = async (key, record) => {
         try {
-            let data = await form.validateFields();
-            isValidFoodItem(data);
-            let status = await FoodService.updateFood(record.id, { ...data });
-            if (status.error) throw new Error(status.message);
-
-            openNotification({ type: 'success', message: status.data.message });
-            setFoodItems((prevState) => prevState.map((food) => (food.id === record.id ? { ...record, ...data } : food)));
+            const row = await form.validateFields();
+            // const response = await updateUserApi({name: row.name, role: row.role, user_id: record.user_id})
+            //call api
+            const response = true;
+            if (response) {
+                const newData = [...data];
+                const index = newData.findIndex((item) => key === item.key);
+                if (index > -1) {
+                    const item = newData[index];
+                    newData.splice(index, 1, {
+                        ...item,
+                        ...row,
+                    });
+                    setData(newData);
+                    setEditingKey('');
+                } else {
+                    newData.push(row);
+                    setData(newData);
+                    setEditingKey('');
+                }
+            }
             setEditingKey('');
-        } catch (error) {
-            openNotification({ type: 'error', message: error.message });
-        }
+        } catch (errInfo) {}
     };
 
-    const handleEnableEditMode = (record) => {
-        //set EditMode food item id
+    const edit = (record) => {
         form.setFieldsValue({
             name: '',
             age: '',
             address: '',
             ...record,
         });
-        setEditingKey(record.id);
-        console.warn('Record', record);
+        setEditingKey(record.key);
     };
 
-    const handleDelete = async (record) => {
-        try {
-            let status = await FoodService.deleteFood(record);
-            if (status.error) throw new Error(status.message);
-
-            openNotification({ type: 'success', message: status.data.message });
-            setFoodItems((prevState) => prevState.filter((food) => food.id !== record.id));
-        } catch (error) {
-            openNotification({ type: 'error', message: error.message });
-        }
+    const handleDelete = (key) => {
+        setData(data.filter((item) => item.key !== key.key));
     };
 
     const cellInfo = () => {
@@ -165,8 +153,7 @@ const ListEntries = () => {
     };
 
     const handleReset = () => {
-        setColumnFilterData({ start: '', end: '' });
-        setPage(1);
+        setData(originalData);
     };
 
     function disabledDate(current) {
@@ -181,7 +168,7 @@ const ListEntries = () => {
             width: '5%',
             editable: false,
             align: 'center',
-            render: (value, item, index) => index + 1,
+            render: (value, item, index) => (page - 1) * pageSize + index + 1,
         },
         {
             title: `Name`,
@@ -251,47 +238,30 @@ const ListEntries = () => {
             dataIndex: 'actions',
             width: '10%',
             render: (_, record) => {
-                const editable = record.id === editingKey;
+                const editable = isEditing(record);
                 return (
                     <Space size="middle">
                         {' '}
                         {editable ? (
-                            <>
-                                <span>
-                                    <Button onClick={() => save(record.id, record)} style={{ marginRight: 8 }}>
-                                        Save
-                                    </Button>
-                                </span>
-                                <span>
-                                    <Popconfirm title="Sure to cancel?" onConfirm={handleDisableEditMode}>
-                                        <Button>Cancel</Button>
-                                    </Popconfirm>
-                                </span>
-                            </>
+                            <span>
+                                <a href="javascript:;" onClick={() => save(record.key, record)} style={{ marginRight: 8 }}>
+                                    Save
+                                </a>
+                                <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
+                                    <a>Cancel</a>
+                                </Popconfirm>
+                            </span>
                         ) : (
-                            <Typography.Link disabled={editingKey !== ''} onClick={() => handleEnableEditMode(record)}>
+                            <Typography.Link disabled={editingKey !== ''} onClick={() => edit(record)}>
                                 Edit
                             </Typography.Link>
                         )}
-                        {!editable && <Button onClick={() => handleDelete(record)}>Delete</Button>}
+                        <a onClick={() => handleDelete(record)}>Delete</a>
                     </Space>
                 );
             },
         },
     ];
-
-    // if Admin also display user-id col
-    user.isAdmin &&
-        columns.splice(2, 0, {
-            title: 'UserID',
-            key: 'index',
-            width: '5%',
-            editable: false,
-            align: 'center',
-            render: (value, item, index) => {
-                return item.userId;
-            },
-        });
 
     const mergedColumns = columns.map((col) => {
         if (!col.editable) {
@@ -305,13 +275,17 @@ const ListEntries = () => {
                 inputType: col.dataIndex === 'age' ? 'number' : 'text',
                 dataIndex: col.dataIndex,
                 title: col.title,
-                editing: record.id === editingKey,
+                editing: isEditing(record),
             }),
         };
     });
 
     return (
         <div className={styles.Container}>
+            <RightSidebar isOpen={isNavOpen} setIsAddMealModal={setIsAddMealModal} />
+            <Button type="primary" className={styles.button} onClick={() => setIsNavOpen(!isNavOpen)} onBlur={() => setIsNavOpen(false)}>
+                {React.createElement(isNavOpen ? MenuUnfoldOutlined : MenuFoldOutlined)}
+            </Button>
             <Form form={form} component={false}>
                 <Table
                     bordered
@@ -320,17 +294,20 @@ const ListEntries = () => {
                             cell: EditableCell,
                         },
                     }}
-                    dataSource={foodItems}
+                    dataSource={data}
                     columns={mergedColumns}
                     rowClassName="editable-row"
-                    pagination={false}
+                    pagination={{
+                        onChange(current) {
+                            setPage(current);
+                            cancel();
+                        },
+                        defaultCurrent: 1,
+                        onShowSizeChange: onShowSizeChange,
+                    }}
                 />
             </Form>
-
-            <Row justify="center" gutter={[0, 20]} style={{ padding: '59px' }}>
-                <Pagination current={page} onChange={setPage} total={totalPages} />
-            </Row>
-            <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')} />
+            <AddMeal isModelOpen={isAddMealModal} closeModal={() => setIsAddMealModal(false)} />
         </div>
     );
 };

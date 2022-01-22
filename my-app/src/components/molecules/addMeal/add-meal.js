@@ -13,7 +13,6 @@ const AddMeal = ({ isModelOpen, closeModal }) => {
 
     const onSubmit = async (fieldsValue) => {
         try {
-            console.log({ fieldsValue });
             closeModal();
             const { name, calorie, price, dateTime, userId } = fieldsValue;
             const dateTimeVal = dateTime.format('YYYY-MM-DD HH:mm:ss');
