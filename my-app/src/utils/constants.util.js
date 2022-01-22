@@ -8,6 +8,6 @@ const CONSTANTS = {
             range: '${label} must be between ${min} and ${max}',
         },
     },
-}
+};
 
-export default CONSTANTS
+export default CONSTANTS;

@@ -1,8 +1,10 @@
 import React from 'react';
-import UserContext from '../contexts/user-context';
+import { AppContext } from '../App';
 
 const useAuth = () => {
-    const { user, setUser } = React.useContext(UserContext);
+    const {
+        auth: { user, setUser },
+    } = React.useContext(AppContext);
     return [user, setUser];
 };
 

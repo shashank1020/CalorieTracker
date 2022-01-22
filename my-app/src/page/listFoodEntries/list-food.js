@@ -1,15 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import moment from 'moment';
+import WarningTwoTone from '@ant-design/icons/lib/icons/WarningTwoTone';
 import { Button, Form, Input, InputNumber, notification, Popconfirm, Space, Table, Tooltip, Typography } from 'antd';
+
 import getColumnSearchProps from '../../components/atoms/tableFilter/TableColumnFilter';
 import FoodService from '../../services/food-service';
-import RightSidebar from '../../components/molecules/sideNavigation/side-navigation';
 import styles from './listFood.module.css';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import AddMeal from '../../components/molecules/addMeal/add-meal';
-import WarningTwoTone from '@ant-design/icons/lib/icons/WarningTwoTone';
-import moment from 'moment';
-import CONSTANTS from '../../utils/constants.util';
 import { openNotification } from '../../utils';
+import useAuth from '../../hooks/useAuth';
+import useActiveModal from '../../hooks/useActiveModal';
+import modalIds from '../../utils/modalIds';
 
 const EditableCell = ({ editing, dataIndex, title, inputType, record, index, children, ...restProps }) => {
     const inputNode = inputType === 'number' ? <InputNumber /> : <Input />;
@@ -38,6 +39,7 @@ const EditableCell = ({ editing, dataIndex, title, inputType, record, index, chi
 };
 
 const validateFields = (dataIndex, title) => {
+    //TODO: verify...
     let rules;
     if (dataIndex === 'calorie') {
         rules = [{ required: true, type: 'number', min: 1, max: 2000 }];
@@ -49,24 +51,19 @@ const validateFields = (dataIndex, title) => {
 };
 
 const ListEntries = () => {
+    const [user] = useAuth();
+    const [activeModalId, setActiveModalId] = useActiveModal();
     const [form] = Form.useForm();
     const [foodItems, setFoodItems] = useState([]);
     const [editingKey, setEditingKey] = useState('');
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [isNavOpen, setIsNavOpen] = useState(false);
 
-    const [isAddMealModal, setIsAddMealModal] = useState(false);
     const [columnFilterData, setColumnFilterData] = useState({
         start: '',
         end: '',
     });
-
-    const isEditing = (record) => {
-        console.log({ EditKey: editingKey, recordKey: record.id });
-        return record.id === editingKey;
-    };
 
     let searchInput = useRef(null);
 
@@ -104,7 +101,7 @@ const ListEntries = () => {
         confirm();
     };
 
-    const cancel = () => {
+    const handleDisableEditMode = () => {
         setEditingKey('');
     };
 
@@ -199,7 +196,6 @@ const ListEntries = () => {
             editable: false,
             align: 'center',
             render(text, record) {
-                console.log({ text, record });
                 return {
                     children: (
                         <>
@@ -247,7 +243,7 @@ const ListEntries = () => {
             dataIndex: 'actions',
             width: '10%',
             render: (_, record) => {
-                const editable = isEditing(record);
+                const editable = record.id === editingKey;
                 return (
                     <Space size="middle">
                         {' '}
@@ -259,7 +255,7 @@ const ListEntries = () => {
                                     </Button>
                                 </span>
                                 <span>
-                                    <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
+                                    <Popconfirm title="Sure to cancel?" onConfirm={handleDisableEditMode}>
                                         <Button>Cancel</Button>
                                     </Popconfirm>
                                 </span>
@@ -276,8 +272,21 @@ const ListEntries = () => {
         },
     ];
 
+    // if Admin also display user-id col
+    user.isAdmin &&
+        columns.splice(2, 0, {
+            title: 'UserID',
+            key: 'index',
+            width: '5%',
+            editable: false,
+            align: 'center',
+            render: (value, item, index) => {
+                console.log({ value, item, index });
+                return item.userId;
+            },
+        });
+
     const mergedColumns = columns.map((col) => {
-        console.log('col', col);
         if (!col.editable) {
             return col;
         }
@@ -289,17 +298,13 @@ const ListEntries = () => {
                 inputType: col.dataIndex === 'age' ? 'number' : 'text',
                 dataIndex: col.dataIndex,
                 title: col.title,
-                editing: isEditing(record),
+                editing: record.id === editingKey,
             }),
         };
     });
 
     return (
         <div className={styles.Container}>
-            <RightSidebar isOpen={isNavOpen} setIsAddMealModal={setIsAddMealModal} />
-            <Button type="primary" className={styles.button} onClick={() => setIsNavOpen(!isNavOpen)} onBlur={() => setIsNavOpen(false)}>
-                {React.createElement(isNavOpen ? MenuUnfoldOutlined : MenuFoldOutlined)}
-            </Button>
             <Form form={form} component={false}>
                 <Table
                     bordered
@@ -315,7 +320,7 @@ const ListEntries = () => {
                         total: 10,
                         onChange(current) {
                             setPage(current);
-                            cancel();
+                            handleDisableEditMode();
                         },
                         defaultCurrent: 1,
                         onShowSizeChange: onShowSizeChange,
@@ -324,7 +329,7 @@ const ListEntries = () => {
                     }}
                 />
             </Form>
-            <AddMeal isModelOpen={isAddMealModal} closeModal={() => setIsAddMealModal(false)} />
+            <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')} />
         </div>
     );
 };
