@@ -1,5 +1,5 @@
-import { getToken, getUserHeaders, openNotification } from '../utils';
-import { RootAPI, UserAPI } from './service-constant';
+import { getUserHeaders, openNotification } from '../utils';
+import { UserAPI } from './service-constant';
 import axios from 'axios';
 
 export default class UserService {
