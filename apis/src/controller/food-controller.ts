@@ -10,10 +10,9 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-// import { AppService } from './app.service';
 import AppGuard from '../guard/app-guard';
-import FoodService from '../service/food-service';
 
+import FoodService from '../service/food-service';
 @Controller('/food')
 @UseGuards(AppGuard)
 export default class FoodController {
@@ -38,15 +37,5 @@ export default class FoodController {
   @Get('/')
   listFood(@Query() queryParams, @Req() req) {
     return this.foodService.listFood(queryParams, req.user);
-  }
-
-  @Get('/reports')
-  foodReports(@Req() req) {
-    return this.foodService.generateReports(req.user);
-  }
-
-  @Get('/user/details')
-  getUserDetails(@Req() req) {
-    return { user: req.user };
   }
 }

@@ -39,12 +39,11 @@ const EditableCell = ({ editing, dataIndex, title, inputType, record, index, chi
 };
 
 const validateFields = (dataIndex, title = '') => {
-    //TODO: verify...
     let rules;
     if (dataIndex === 'calorie') {
         rules = [{ required: true, type: 'number', min: 1, max: 2000 }];
     } else if (dataIndex === 'price') {
-        rules = [{ required: true, type: 'number', min: 1, max: 5000 }];
+        rules = [{ required: true, type: 'number', min: 1, max: 500 }];
     } else rules = [{ required: true, message: `Please Input ${title}!` }];
 
     return rules;

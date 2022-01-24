@@ -1,5 +1,4 @@
 import {
-  ForbiddenException,
   HttpException,
   Injectable,
   UnauthorizedException,
@@ -13,14 +12,7 @@ import UserEntity from '../db/entity/user.entity';
 import FoodEntity from '../db/entity/food.entity';
 import * as moment from 'moment';
 import * as _ from 'lodash';
-import {
-  Between,
-  getConnection,
-  getManager,
-  getRepository,
-  In,
-  MoreThanOrEqual,
-} from 'typeorm';
+import { Between, getManager, getRepository, In } from 'typeorm';
 
 @Injectable()
 export default class FoodService {
@@ -47,9 +39,6 @@ export default class FoodService {
     food.userId = authUser.id;
 
     //if admin is creating a food item
-    console.log('------------------------------------------------------');
-    console.log('------------------------------------------------------');
-    console.log('body', body);
     console.log({ authUser });
     if (authUser.isAdmin && body.userId) {
       let user: UserEntity;
@@ -195,44 +184,5 @@ export default class FoodService {
     }
     const totalPage = Math.ceil(totalFoodCount / pageSize);
     return { foodItems: foods, currentPage: page, totalPages: totalPage };
-  }
-
-  async generateReports(user: UserEntity) {
-    if (!user?.isAdmin) throw new ForbiddenException();
-    const now = moment().format(`YYYY-MM-DD`);
-    const sevenDaysBack = moment().subtract(7, 'day').format(`YYYY-MM-DD`);
-    const fourteenDayBack = moment().subtract(14, 'day').format(`YYYY-MM-DD`);
-    // const currentWeakEntries = await FoodEntity.count({where: {date: Between( sevenDaysBack, now)}})
-    const currentWeakEntries = await getRepository(FoodEntity)
-      .createQueryBuilder('food')
-      .where('food.date >= :startDate and food.date <= :endDate', {
-        startDate: sevenDaysBack,
-        endDate: now,
-      })
-      .getCount();
-
-    const prevWeekEntries = await getRepository(FoodEntity)
-      .createQueryBuilder('food')
-      .where('food.date >= :startDate and food.date < :endDate', {
-        startDate: fourteenDayBack,
-        endDate: sevenDaysBack,
-      })
-      .getCount();
-
-    const totalUserEntries = await getManager().query(
-      `select count(distinct userId) as count, sum(calorie) as calorie from food where date between '${sevenDaysBack}' and '${now}'`,
-    );
-    const { count, calorie } = totalUserEntries[0];
-
-    return {
-      currentWeakEntries,
-      prevWeekEntries,
-      totalCalorieInSevenDays: calorie,
-      totalUserInSevenDays: count,
-      averageCaloriePerUser:
-        count === 0
-          ? 0
-          : Number(Number((calorie * 1.0) / (count * 1.0)).toFixed(2)),
-    };
   }
 }

@@ -2,7 +2,7 @@ import { Button, DatePicker, Space } from 'antd';
 import React from 'react';
 import styles from './tableFilter.module.css';
 import moment from 'moment';
-import SearchOutlined from '@ant-design/icons/lib/icons/SearchOutlined';
+import { FilterOutlined } from '@ant-design/icons/lib/icons';
 
 const { RangePicker } = DatePicker;
 
@@ -16,10 +16,6 @@ const GetColumnFilterCell = (dataIndex, searchInput, columnFilterData, setColumn
                     <span className={styles.rangePicker}>
                         <RangePicker
                             showTime={false}
-                            // showTime={{
-                            //     hideDisabledOptions: true,
-                            //     defaultValue: [moment('00:00', 'HH:mm'), moment('11:59:59', 'HH:mm')],
-                            // }}
                             onChange={(value, dateString) => {
                                 setLocalState({ start: dateString[0], end: dateString[1] });
                             }}
@@ -49,7 +45,7 @@ const GetColumnFilterCell = (dataIndex, searchInput, columnFilterData, setColumn
             </div>
         );
     },
-    filterIcon: (filtered) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    filterIcon: (filtered) => <FilterOutlined size={20} style={{ color: filtered ? '#1890ff' : undefined }} />,
     onFilterDropdownVisibleChange: (visible) => {
         if (visible) {
             setTimeout(() => searchInput.select(), 100);

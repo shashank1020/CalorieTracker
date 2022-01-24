@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 import { Pie } from '@ant-design/plots';
 import ReportsService from '../services/reports-service';
-import { openNotification } from '../utils';
+import { openNotification } from '../utils/index';
 
 const Reports = () => {
     const [reportsData, setReportsData] = useState([]);
@@ -10,17 +10,25 @@ const Reports = () => {
         try {
             let res = await ReportsService.getReports();
             if (res.error) throw new Error(res.message);
-            setReportsData(res.data);
+            setReportsData({ ...res });
         } catch (error) {
             openNotification({ type: 'error', message: error.message });
         }
     };
 
-    const FieldsMapping = useMemo(
+    const graph1 = useMemo(
         () => ({
-            currentWeakEntries: 'Current Weak Entries',
+            currentWeekEntries: 'current Week Entries',
             prevWeekEntries: 'Prev Week Entries',
-            todayEntries: 'Today Entries',
+        }),
+        [],
+    );
+
+    const graph2 = useMemo(
+        () => ({
+            totalCalorieInLastSevenDays: 'Calorie in last 7 Days',
+            totalUserInLastSevenDays: 'Total users in last 7 days',
+            averageCaloriePerUser: 'Avg Calories ',
         }),
         [],
     );
@@ -29,9 +37,10 @@ const Reports = () => {
         loadReportsData();
     }, []);
 
-    const data = React.useMemo(() => Object.keys(FieldsMapping).map((field) => ({ type: FieldsMapping[field], value: reportsData[field] ? reportsData[field] : 0 })), []);
-    const config = {
-        appendPadding: 20,
+    const data = React.useMemo(() => Object.keys(graph1).map((field) => ({ type: graph1[field], value: reportsData[field] })), [reportsData]);
+    const data2 = React.useMemo(() => Object.keys(graph2).map((field) => ({ type: graph2[field], value: reportsData[field] })), [reportsData]);
+    const getConfig = (data) => ({
+        appendPadding: 50,
         data,
         angleField: 'value',
         colorField: 'type',
@@ -48,10 +57,11 @@ const Reports = () => {
                 type: 'element-active',
             },
         ],
-    };
+    });
     return (
-        <div style={{ display: 'flex', height: '600px', width: '600px' }}>
-            <Pie {...config} />;
+        <div style={{ display: 'flex', height: 'auto', width: '600px', flexDirection: 'column', margin: 'auto' }}>
+            <Pie {...getConfig(data)} />;
+            <Pie {...getConfig(data2)} />;
         </div>
     );
 };
