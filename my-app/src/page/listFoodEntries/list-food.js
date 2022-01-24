@@ -121,7 +121,7 @@ const ListEntries = () => {
         try {
             let data = await form.validateFields();
             isValidFoodItem(data);
-            let status = await FoodService.updateFood(record.id, { ...data });
+            let status = await FoodService.updateFood(record.id, { ...record, ...data });
             if (status.error) throw new Error(status.message);
 
             openNotification({ type: 'success', message: status.data.message });
@@ -328,7 +328,7 @@ const ListEntries = () => {
             </Form>
 
             <Row justify="center" gutter={[0, 20]} style={{ padding: '59px' }}>
-                <Pagination current={page} onChange={setPage} total={totalPages} />
+                <Pagination current={page} onChange={setPage} total={10 * totalPages} showSizeChanger={false} />
             </Row>
             <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')} />
         </div>

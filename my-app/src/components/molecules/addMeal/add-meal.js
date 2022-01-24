@@ -13,15 +13,14 @@ const AddMeal = ({ isModelOpen, closeModal }) => {
 
     const onSubmit = async (fieldsValue) => {
         try {
-            closeModal();
-            const { name, calorie, price, dateTime, userId } = fieldsValue;
-            const dateTimeVal = dateTime.format('YYYY-MM-DD HH:mm:ss');
-            let status = await FoodService.addFood({ name, calorie, dateTime: dateTimeVal, price, userId });
-            if (status.error) throw new Error({ message: status.message });
+            const { name, calorie, price, createdAt, userId } = fieldsValue;
+            const createdAtVal = createdAt.format('YYYY-MM-DD HH:mm'); //TODO
+            let status = await FoodService.addFood({ name, calorie, createdAt: createdAtVal, price, userId });
+            if (status.error) throw new Error(status.message);
             openNotification({ type: 'success', message: 'Food Item Added' });
             closeModal();
         } catch (error) {
-            openNotification({ type: 'error' });
+            openNotification({ type: 'error', message: error.message });
         }
     };
 
@@ -43,7 +42,7 @@ const AddMeal = ({ isModelOpen, closeModal }) => {
 
     function disabledDate(current) {
         // Can not select days before today and today
-        return current && current < moment().endOf('day');
+        return current && current > moment().endOf('day');
     }
 
     const getDisabledHours = () => {
@@ -84,7 +83,7 @@ const AddMeal = ({ isModelOpen, closeModal }) => {
                     <Form.Item label="Calorie Value" name={'calorie'} rules={[{ required: true, type: 'number', min: 1, max: 2000 }]}>
                         <InputNumber placeholder="calorie" type={'number'} />
                     </Form.Item>
-                    <Form.Item label="Date & Time" name={'dateTime'} rules={[{ required: true }]}>
+                    <Form.Item label="Date & Time" name={'createdAt'} rules={[{ required: true }]}>
                         <DatePicker
                             format="YYYY-MM-DD HH:mm:ss"
                             disabledDate={disabledDate}
@@ -99,7 +98,7 @@ const AddMeal = ({ isModelOpen, closeModal }) => {
                         <InputNumber placeholder="price" type={'number'} />
                     </Form.Item>
                     {user.isAdmin && (
-                        <Form.Item label="User Id" name={'userId'} rules={[{ required: true, type: 'number' }]}>
+                        <Form.Item label="User Id" name={'userId'} rules={[{ required: false, type: 'number' }]}>
                             <InputNumber placeholder="User Id" type={'number'} />
                         </Form.Item>
                     )}

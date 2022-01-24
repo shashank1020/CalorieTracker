@@ -15,15 +15,16 @@ const GetColumnFilterCell = (dataIndex, searchInput, columnFilterData, setColumn
                 {
                     <span className={styles.rangePicker}>
                         <RangePicker
-                            showTime={{
-                                hideDisabledOptions: true,
-                                defaultValue: [moment('00:00:00', 'HH:mm:ss'), moment('11:59:59', 'HH:mm:ss')],
-                            }}
+                            showTime={false}
+                            // showTime={{
+                            //     hideDisabledOptions: true,
+                            //     defaultValue: [moment('00:00', 'HH:mm'), moment('11:59:59', 'HH:mm')],
+                            // }}
                             onChange={(value, dateString) => {
                                 setLocalState({ start: dateString[0], end: dateString[1] });
                             }}
                             value={localState?.start ? [moment(localState?.start), moment(localState?.end)] : []}
-                            format="YYYY-MM-DD HH:mm:ss"
+                            format="YYYY-MM-DD"
                             disabledDate={disabledDate}
                         />
                     </span>

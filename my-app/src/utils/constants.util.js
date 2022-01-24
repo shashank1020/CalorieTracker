@@ -8,6 +8,9 @@ const CONSTANTS = {
             range: '${label} must be between ${min} and ${max}',
         },
     },
+    apis: {
+        root: 'http://localhost:4000',
+    },
 };
 
 export default CONSTANTS;
