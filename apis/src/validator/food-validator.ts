@@ -11,7 +11,7 @@ export const validateFoodEntry = ({
 }): ValidationResult => {
   const FoodSchema = Joi.object({
     name: Joi.string().min(3).max(100).required(),
-    calorie: Joi.number().min(50).max(3000).required(),
+    calorie: Joi.number().min(10).max(3000).required(),
     price: Joi.number().min(1).max(500).required(),
     createdAt: Joi.string().required().custom(createdAtValidator),
   });

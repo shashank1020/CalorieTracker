@@ -8,7 +8,6 @@ import FoodController from './controller/food-controller';
 import UserController from './controller/user-controller';
 
 import FoodService from './service/food-service';
-import UserService from './service/user-service';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -20,6 +19,6 @@ import UserService from './service/user-service';
     }),
   ],
   controllers: [FoodController, UserController],
-  providers: [FoodService, UserService],
+  providers: [FoodService],
 })
 export default class AppModule {}

@@ -1,5 +1,7 @@
 import React from 'react';
-import { AppContext } from '../App';
+
+
+export const AppContext = React.createContext({});
 
 const useAuth = () => {
     const {

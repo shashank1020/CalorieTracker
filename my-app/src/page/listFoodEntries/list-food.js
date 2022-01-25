@@ -1,19 +1,32 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import moment from 'moment';
 import WarningTwoTone from '@ant-design/icons/lib/icons/WarningTwoTone';
-import { Button, Row, Form, Input, InputNumber, notification, Popconfirm, Space, Table, Tooltip, Typography, Pagination } from 'antd';
+import {
+    Button,
+    Row,
+    Form,
+    Input,
+    InputNumber,
+    notification,
+    Popconfirm,
+    Space,
+    Table,
+    Tooltip,
+    Typography,
+    Pagination
+} from 'antd';
 
 import getColumnSearchProps from '../../components/atoms/tableFilter/TableColumnFilter';
 import FoodService from '../../services/food-service';
 import styles from './listFood.module.css';
 import AddMeal from '../../components/molecules/addMeal/add-meal';
-import { openNotification } from '../../utils';
-import useAuth from '../../hooks/useAuth';
+import {openNotification} from '../../utils';
+import useAuth, {AppContext} from '../../hooks/useAuth';
 import useActiveModal from '../../hooks/useActiveModal';
 import modalIds from '../../utils/modalIds';
 
-const EditableCell = ({ editing, dataIndex, title, inputType, record, index, children, ...restProps }) => {
-    const inputNode = inputType === 'number' ? <InputNumber rules={validateFields(dataIndex)} /> : <Input />;
+const EditableCell = ({editing, dataIndex, title, inputType, record, index, children, ...restProps}) => {
+    const inputNode = inputType === 'number' ? <InputNumber rules={validateFields(dataIndex)}/> : <Input/>;
     return (
         <td {...restProps}>
             {editing ? (
@@ -41,10 +54,10 @@ const EditableCell = ({ editing, dataIndex, title, inputType, record, index, chi
 const validateFields = (dataIndex, title = '') => {
     let rules;
     if (dataIndex === 'calorie') {
-        rules = [{ required: true, type: 'number', min: 1, max: 2000 }];
+        rules = [{required: true, type: 'number', min: 10, max: 3000}];
     } else if (dataIndex === 'price') {
-        rules = [{ required: true, type: 'number', min: 1, max: 500 }];
-    } else rules = [{ required: true, message: `Please Input ${title}!` }];
+        rules = [{required: true, type: 'number', min: 1, max: 500}];
+    } else rules = [{required: true, message: `Please Input ${title}!`}];
 
     return rules;
 };
@@ -55,6 +68,7 @@ const ListEntries = () => {
     const [form] = Form.useForm();
     const [foodItems, setFoodItems] = useState([]);
     const [editingKey, setEditingKey] = useState('');
+    const {reload: {reloadFoods, setReloadFoods}} = useContext(AppContext);
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -67,7 +81,7 @@ const ListEntries = () => {
     let searchInput = useRef(null);
 
     const fetchFoodItems = React.useCallback(
-        ({ page, columnFilterData }) => {
+        ({page, columnFilterData}) => {
             FoodService.fetchFoods({
                 page,
                 startDate: columnFilterData.start,
@@ -88,12 +102,12 @@ const ListEntries = () => {
                     });
                 });
         },
-        [foodItems],
+        [],
     );
 
     useEffect(() => {
-        fetchFoodItems({ page, columnFilterData });
-    }, [columnFilterData, page]);
+        fetchFoodItems({page, columnFilterData});
+    }, [columnFilterData, fetchFoodItems, page, reloadFoods]);
 
     const handleColumnFilter = (dataIndex, confirm) => {
         setPage(1);
@@ -105,29 +119,31 @@ const ListEntries = () => {
     };
 
     const isValidFoodItem = useCallback((foodItem) => {
-        if (parseInt(foodItem.calorie) < 10 || parseInt(foodItem.calorie) > 1000) {
-            throw new Error('Calorie should be b/w 10 & 1000');
+        if (parseInt(foodItem.calorie) < 10 || parseInt(foodItem.calorie) > 3000) {
+            openNotification({type: 'error', message: 'Calorie should be b/w 10 & 3000'})
+            throw new Error('Calorie should be b/w 10 & 3000');
         }
         if (foodItem.name.length < 3) {
+            openNotification({type: 'error', message: 'Name must be more than 3 letters'})
             throw new Error('Name must be more than 3 letters');
         }
-        if (foodItem.price < 10 || foodItem.price > 1000) {
-            throw new Error('Price should be b/w 10 & 1000');
+        if (foodItem.price < 1 || foodItem.price > 500) {
+            openNotification({type: 'error', message: 'Price should be b/w 1 & 500'})
+            throw new Error('Price should be b/w 1 & 500');
         }
     }, []);
 
-    const save = async (_, record) => {
+    const onUpdate = async (_, record) => {
+        let data = await form.validateFields();
+        isValidFoodItem(data);
         try {
-            let data = await form.validateFields();
-            isValidFoodItem(data);
-            let status = await FoodService.updateFood(record.id, { ...record, ...data });
-            if (status.error) throw new Error(status.message);
-
-            openNotification({ type: 'success', message: status.data.message });
-            setFoodItems((prevState) => prevState.map((food) => (food.id === record.id ? { ...record, ...data } : food)));
+            await FoodService.updateFood(record.id, {...record, ...data});
+            openNotification({type: 'success', message: 'Food updated successfully'});
+            // setFoodItems((prevState) => prevState.map((food) => (food.id === record.id ? {...record, ...data} : food)));
             setEditingKey('');
-        } catch (error) {
-            openNotification({ type: 'error', message: error.message });
+            setReloadFoods(Math.random())
+        } catch (e) {
+            openNotification({type: 'error', message: e?.response?.data?.message});
         }
     };
 
@@ -145,26 +161,25 @@ const ListEntries = () => {
 
     const handleDelete = async (record) => {
         try {
-            let status = await FoodService.deleteFood(record);
-            if (status.error) throw new Error(status.message);
-
-            openNotification({ type: 'success', message: status.data.message });
-            setFoodItems((prevState) => prevState.filter((food) => food.id !== record.id));
-        } catch (error) {
-            openNotification({ type: 'error', message: error.message });
+            await FoodService.deleteFood(record);
+            openNotification({type: 'success', message: 'Deleted successfully'});
+            setReloadFoods(Math.random())
+            // setFoodItems((prevState) => prevState.filter((food) => food.id !== record.id));
+        } catch (e) {
+            openNotification({type: 'error', message: e?.response?.data?.message});
         }
     };
 
     const cellInfo = () => {
         return (
             <div style={inlineStyle.cellInfoContainer}>
-                <WarningTwoTone twoToneColor="red" style={inlineStyle.icon} />
+                <WarningTwoTone twoToneColor="red" style={inlineStyle.icon}/>
             </div>
         );
     };
 
     const handleReset = () => {
-        setColumnFilterData({ start: '', end: '' });
+        setColumnFilterData({start: '', end: ''});
         setPage(1);
     };
 
@@ -175,12 +190,11 @@ const ListEntries = () => {
 
     const columns = [
         {
-            title: 'S NO',
-            key: 'index',
+            title: 'ID',
+            dataIndex: 'id',
             width: '5%',
             editable: false,
             align: 'center',
-            render: (value, item, index) => index + 1,
         },
         {
             title: `Name`,
@@ -206,7 +220,8 @@ const ListEntries = () => {
                 return {
                     children: (
                         <>
-                            {record?.dayCalorie > record?.dailyThresholdLimit ? <Tooltip title="Daily Calorie Limit Exceeded">{cellInfo()}</Tooltip> : null}
+                            {record?.dayCalorie > record?.user?.dailyCalorieLimit ? <Tooltip
+                                title={`Daily Calorie Limit of ${record?.user?.dailyCalorieLimit} Exceeded`}>{cellInfo()}</Tooltip> : null}
                             <div>{record?.dayCalorie}</div>
                         </>
                     ),
@@ -230,7 +245,8 @@ const ListEntries = () => {
                 return {
                     children: (
                         <>
-                            {record?.monthAmount > record?.monthlyThresholdLimit ? <Tooltip title="Monthly Amount Exceeded">{cellInfo()}</Tooltip> : null}
+                            {record?.monthAmount > record?.user?.monthlyBudget ? <Tooltip
+                                title={`Monthly Threshold of ${record?.user?.monthlyBudget} Exceeded`}>{cellInfo()}</Tooltip> : null}
                             <div>{record?.monthAmount}</div>
                         </>
                     ),
@@ -257,8 +273,8 @@ const ListEntries = () => {
                         {editable ? (
                             <>
                                 <span>
-                                    <Button onClick={() => save(record.id, record)} style={{ marginRight: 8 }}>
-                                        Save
+                                    <Button onClick={() => onUpdate(record.id, record)} style={{marginRight: 8}}>
+                                        Update
                                     </Button>
                                 </span>
                                 <span>
@@ -281,16 +297,16 @@ const ListEntries = () => {
 
     // if Admin also display user-id col
     user.isAdmin &&
-        columns.splice(2, 0, {
-            title: 'UserID',
-            key: 'index',
-            width: '5%',
-            editable: false,
-            align: 'center',
-            render: (value, item, index) => {
-                return item.userId;
-            },
-        });
+    columns.splice(2, 0, {
+        title: 'UserID',
+        key: 'index',
+        width: '5%',
+        editable: false,
+        align: 'center',
+        render: (value, item, index) => {
+            return item.userId;
+        },
+    });
 
     const mergedColumns = columns.map((col) => {
         if (!col.editable) {
@@ -326,10 +342,10 @@ const ListEntries = () => {
                 />
             </Form>
 
-            <Row justify="center" gutter={[0, 20]} style={{ padding: '59px' }}>
-                <Pagination current={page} onChange={setPage} total={10 * totalPages} showSizeChanger={false} />
+            <Row justify="center" gutter={[0, 20]} style={{padding: '59px'}}>
+                <Pagination current={page} onChange={setPage} total={10 * totalPages} showSizeChanger={false}/>
             </Row>
-            <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')} />
+            <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')}/>
         </div>
     );
 };

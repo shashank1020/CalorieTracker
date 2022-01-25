@@ -10,6 +10,7 @@ export const openNotification = ({ type = 'info', message = '', description = ''
 
 export const getToken = () => {
     //get token from local storage or something..
+    // currently the token is userId
     return '1';
 };
 

@@ -24,6 +24,11 @@ export default class FoodController {
     return this.foodService.createFood(body, req.user);
   }
 
+  @Get('/reports')
+  foodReports(@Req() req) {
+    return this.foodService.generateReports(req.user);
+  }
+
   @Put('/:id')
   updateFood(@Param('id') id: string, @Body() body, @Req() req) {
     return this.foodService.updateFood(id, body, req.user);

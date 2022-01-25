@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   HttpException,
   Injectable,
   UnauthorizedException,
@@ -40,18 +41,22 @@ export default class FoodService {
 
     //if admin is creating a food item
     console.log({ authUser });
+    let user: UserEntity = authUser;
     if (authUser.isAdmin && body.userId) {
-      let user: UserEntity;
-      try {
-        user = await UserEntity.findOne(body.userId);
-      } catch (e) {}
+      user = await UserEntity.findOne(body.userId);
       if (user) {
         food.userId = body.userId;
-      } else throw new UnauthorizedException();
+      } else throw new HttpException('Provided UserID is Invalid', 400);
     }
 
     await food.save();
-    return food;
+    const dayFoods = await FoodEntity.find({
+      where: { userId: food.userId, date: food.date },
+    });
+    const totalDayCalorie = dayFoods.reduce((total, f) => {
+      return total + f.calorie;
+    }, 0);
+    return { food, totalDayCalorie, user };
   }
 
   async updateFood(
@@ -126,6 +131,7 @@ export default class FoodService {
     } else {
       foods = await FoodEntity.find({
         where: { date: Between(startDate, endDate), userId: authUser.id },
+        order: { id: 'DESC' },
         skip,
         take,
       });
@@ -135,7 +141,7 @@ export default class FoodService {
     }
 
     if (foods.length === 0) {
-      return { foods, page, totalPage: 1 };
+      return { foodItems: foods, currentPage: page, totalPages: 1 };
     }
     const userIds = _.uniq(foods.map((f) => f.userId));
     const minDate = _.min(foods.map((f) => f.date));
@@ -184,5 +190,43 @@ export default class FoodService {
     }
     const totalPage = Math.ceil(totalFoodCount / pageSize);
     return { foodItems: foods, currentPage: page, totalPages: totalPage };
+  }
+
+  async generateReports(user: UserEntity) {
+    if (!user?.isAdmin) throw new ForbiddenException();
+    const now = moment().format(`YYYY-MM-DD`);
+    const sevenDaysBack = moment().subtract(7, 'day').format(`YYYY-MM-DD`);
+    const fourteenDayBack = moment().subtract(14, 'day').format(`YYYY-MM-DD`);
+    const currentWeekEntries = await getRepository(FoodEntity)
+      .createQueryBuilder('food')
+      .where('food.date >= :startDate and food.date <= :endDate', {
+        startDate: sevenDaysBack,
+        endDate: now,
+      })
+      .getCount();
+
+    const prevWeekEntries = await getRepository(FoodEntity)
+      .createQueryBuilder('food')
+      .where('food.date >= :startDate and food.date < :endDate', {
+        startDate: fourteenDayBack,
+        endDate: sevenDaysBack,
+      })
+      .getCount();
+
+    const totalUserEntries = await getManager().query(
+      `select count(distinct userId) as count, sum(calorie) as calorie from food where date between '${sevenDaysBack}' and '${now}'`,
+    );
+    const { count, calorie } = totalUserEntries[0];
+
+    return {
+      currentWeekEntries,
+      prevWeekEntries,
+      totalCalorieInLastSevenDays: calorie,
+      totalUserInLastSevenDays: count,
+      averageCaloriePerUser:
+        count === 0
+          ? 0
+          : Number(Number((calorie * 1.0) / (count * 1.0)).toFixed(2)),
+    };
   }
 }

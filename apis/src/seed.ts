@@ -19,20 +19,20 @@ const bootstrap = async () => {
     const user = new UserEntity();
     user.id = i + 1;
     user.name = Faker.name.findName();
-    user.isAdmin = Math.random() > 0.7;
+    user.isAdmin = user.id % 5 === 0;
     await user.save();
   }
   const users = await UserEntity.find({});
   for (let i = 0; i < 1000; i++) {
-    const d = moment().subtract(Math.ceil(Math.random() * 10), 'day');
+    const d = moment().subtract(Math.ceil(Math.random() * 100), 'day');
     const food = new FoodEntity();
     // food.name = Faker.commerce.productName();
     food.name = 'Random Name ' + i;
     food.date = d.format('YYYY-MM-DD');
     food.yearMonth = d.format('YYYY-MM');
     food.time = d.format('HH:mm');
-    food.calorie = Math.ceil(Math.random() * 900) + 100;
-    food.price = Math.ceil(Math.random() * 100) + 10;
+    food.calorie = Math.ceil(Math.random() * 1000);
+    food.price = Math.ceil(Math.random() * 100);
     food.userId = _.sample(users).id;
     console.log({ food });
     await food.save();

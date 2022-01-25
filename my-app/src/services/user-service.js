@@ -9,7 +9,6 @@ export default class UserService {
             .then((res) => {
                 console.log(res);
                 if (res.data.user) return res.data.user;
-
                 throw new Error('Authentication failed');
             })
             .catch((e) => {
