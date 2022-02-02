@@ -1,32 +1,32 @@
-import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import moment from 'moment';
 import WarningTwoTone from '@ant-design/icons/lib/icons/WarningTwoTone';
 import {
     Button,
-    Row,
     Form,
     Input,
     InputNumber,
     notification,
+    Pagination,
     Popconfirm,
+    Row,
     Space,
     Table,
     Tooltip,
     Typography,
-    Pagination
 } from 'antd';
 
 import getColumnSearchProps from '../../components/atoms/tableFilter/TableColumnFilter';
 import FoodService from '../../services/food-service';
 import styles from './listFood.module.css';
 import AddMeal from '../../components/molecules/addMeal/add-meal';
-import {openNotification} from '../../utils';
-import useAuth, {AppContext} from '../../hooks/useAuth';
+import { openNotification } from '../../utils';
+import useAuth, { AppContext } from '../../hooks/useAuth';
 import useActiveModal from '../../hooks/useActiveModal';
 import modalIds from '../../utils/modalIds';
 
-const EditableCell = ({editing, dataIndex, title, inputType, record, index, children, ...restProps}) => {
-    const inputNode = inputType === 'number' ? <InputNumber rules={validateFields(dataIndex)}/> : <Input/>;
+const EditableCell = ({ editing, dataIndex, title, inputType, record, index, children, ...restProps }) => {
+    const inputNode = inputType === 'number' ? <InputNumber rules={validateFields(dataIndex)} /> : <Input />;
     return (
         <td {...restProps}>
             {editing ? (
@@ -34,6 +34,7 @@ const EditableCell = ({editing, dataIndex, title, inputType, record, index, chil
                     name={dataIndex}
                     style={{
                         margin: 0,
+                        width: '100%'
                     }}
                     rules={[
                         {
@@ -54,10 +55,10 @@ const EditableCell = ({editing, dataIndex, title, inputType, record, index, chil
 const validateFields = (dataIndex, title = '') => {
     let rules;
     if (dataIndex === 'calorie') {
-        rules = [{required: true, type: 'number', min: 10, max: 3000}];
+        rules = [{ required: true, type: 'number', min: 10, max: 3000 }];
     } else if (dataIndex === 'price') {
-        rules = [{required: true, type: 'number', min: 1, max: 500}];
-    } else rules = [{required: true, message: `Please Input ${title}!`}];
+        rules = [{ required: true, type: 'number', min: 1, max: 500 }];
+    } else rules = [{ required: true, message: `Please Input ${title}!` }];
 
     return rules;
 };
@@ -68,7 +69,7 @@ const ListEntries = () => {
     const [form] = Form.useForm();
     const [foodItems, setFoodItems] = useState([]);
     const [editingKey, setEditingKey] = useState('');
-    const {reload: {reloadFoods, setReloadFoods}} = useContext(AppContext);
+    const { reload: { reloadFoods, setReloadFoods } } = useContext(AppContext);
 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -81,7 +82,7 @@ const ListEntries = () => {
     let searchInput = useRef(null);
 
     const fetchFoodItems = React.useCallback(
-        ({page, columnFilterData}) => {
+        ({ page, columnFilterData }) => {
             FoodService.fetchFoods({
                 page,
                 startDate: columnFilterData.start,
@@ -106,7 +107,7 @@ const ListEntries = () => {
     );
 
     useEffect(() => {
-        fetchFoodItems({page, columnFilterData});
+        fetchFoodItems({ page, columnFilterData });
     }, [columnFilterData, fetchFoodItems, page, reloadFoods]);
 
     const handleColumnFilter = (dataIndex, confirm) => {
@@ -120,30 +121,31 @@ const ListEntries = () => {
 
     const isValidFoodItem = useCallback((foodItem) => {
         if (parseInt(foodItem.calorie) < 10 || parseInt(foodItem.calorie) > 3000) {
-            openNotification({type: 'error', message: 'Calorie should be b/w 10 & 3000'})
+            openNotification({ type: 'error', message: 'Calorie should be b/w 10 & 3000' });
             throw new Error('Calorie should be b/w 10 & 3000');
         }
         if (foodItem.name.length < 3) {
-            openNotification({type: 'error', message: 'Name must be more than 3 letters'})
+            openNotification({ type: 'error', message: 'Name must be more than 3 letters' });
             throw new Error('Name must be more than 3 letters');
         }
         if (foodItem.price < 1 || foodItem.price > 500) {
-            openNotification({type: 'error', message: 'Price should be b/w 1 & 500'})
+            openNotification({ type: 'error', message: 'Price should be b/w 1 & 500' });
             throw new Error('Price should be b/w 1 & 500');
         }
     }, []);
 
     const onUpdate = async (_, record) => {
         let data = await form.validateFields();
+        console.log(data);
         isValidFoodItem(data);
         try {
-            await FoodService.updateFood(record.id, {...record, ...data});
-            openNotification({type: 'success', message: 'Food updated successfully'});
+            await FoodService.updateFood(record.id, { ...record, ...data });
+            openNotification({ type: 'success', message: 'Food updated successfully' });
             // setFoodItems((prevState) => prevState.map((food) => (food.id === record.id ? {...record, ...data} : food)));
             setEditingKey('');
-            setReloadFoods(Math.random())
+            setReloadFoods(Math.random());
         } catch (e) {
-            openNotification({type: 'error', message: e?.response?.data?.message});
+            openNotification({ type: 'error', message: e?.response?.data?.message });
         }
     };
 
@@ -151,35 +153,32 @@ const ListEntries = () => {
         //set EditMode food item id
         form.setFieldsValue({
             name: '',
-            age: '',
-            address: '',
             ...record,
         });
         setEditingKey(record.id);
-        console.warn('Record', record);
     };
 
     const handleDelete = async (record) => {
         try {
             await FoodService.deleteFood(record);
-            openNotification({type: 'success', message: 'Deleted successfully'});
-            setReloadFoods(Math.random())
+            openNotification({ type: 'success', message: 'Deleted successfully' });
+            setReloadFoods(Math.random());
             // setFoodItems((prevState) => prevState.filter((food) => food.id !== record.id));
         } catch (e) {
-            openNotification({type: 'error', message: e?.response?.data?.message});
+            openNotification({ type: 'error', message: e?.response?.data?.message });
         }
     };
 
     const cellInfo = () => {
         return (
             <div style={inlineStyle.cellInfoContainer}>
-                <WarningTwoTone twoToneColor="red" style={inlineStyle.icon}/>
+                <WarningTwoTone twoToneColor='red' style={inlineStyle.icon} />
             </div>
         );
     };
 
     const handleReset = () => {
-        setColumnFilterData({start: '', end: ''});
+        setColumnFilterData({ start: '', end: '' });
         setPage(1);
     };
 
@@ -191,6 +190,7 @@ const ListEntries = () => {
     const columns = [
         {
             title: 'ID',
+            key: 'ID',
             dataIndex: 'id',
             width: '5%',
             editable: false,
@@ -198,6 +198,7 @@ const ListEntries = () => {
         },
         {
             title: `Name`,
+            key: `Name`,
             dataIndex: `name`,
             width: '15%',
             editable: true,
@@ -205,15 +206,17 @@ const ListEntries = () => {
         },
         {
             title: 'Calorie',
+            key: 'Calorie',
             dataIndex: 'calorie',
-            width: '10%',
+            width: '5%',
             editable: true,
             align: 'center',
         },
         {
             title: 'Day Calorie',
+            key: 'Day Calorie',
             dataIndex: 'dayCalorie',
-            width: '10%',
+            width: '5%',
             editable: false,
             align: 'center',
             render(text, record) {
@@ -230,6 +233,7 @@ const ListEntries = () => {
         },
         {
             title: 'Price',
+            key: 'Price',
             width: '5%',
             dataIndex: 'price',
             editable: true,
@@ -237,7 +241,8 @@ const ListEntries = () => {
         },
         {
             title: 'Month Amount',
-            width: '12%',
+            key: 'Month Amount',
+            width: '10%',
             dataIndex: 'monthAmount',
             editable: false,
             align: 'center',
@@ -255,30 +260,33 @@ const ListEntries = () => {
         },
         {
             title: 'Created At',
-            width: '15%',
+            key: 'Created At',
+            width: '25%',
             dataIndex: 'createdAt',
+            colSpan:6,
             ...getColumnSearchProps(`date`, searchInput, columnFilterData, setColumnFilterData, handleColumnFilter, handleReset, disabledDate),
-            editable: false,
+            editable: true,
             align: 'center',
         },
         {
             title: 'Actions',
+            key: 'Actions',
             dataIndex: 'actions',
             width: '10%',
             render: (_, record) => {
                 const editable = record.id === editingKey;
                 return (
-                    <Space size="middle">
+                    <Space size='middle'>
                         {' '}
                         {editable ? (
                             <>
                                 <span>
-                                    <Button onClick={() => onUpdate(record.id, record)} style={{marginRight: 8}}>
+                                    <Button onClick={() => onUpdate(record.id, record)} style={{ marginRight: 8 }}>
                                         Update
                                     </Button>
                                 </span>
                                 <span>
-                                    <Popconfirm title="Sure to cancel?" onConfirm={handleDisableEditMode}>
+                                    <Popconfirm title='Sure to cancel?' onConfirm={handleDisableEditMode}>
                                         <Button>Cancel</Button>
                                     </Popconfirm>
                                 </span>
@@ -298,13 +306,14 @@ const ListEntries = () => {
     // if Admin also display user-id col
     user.isAdmin &&
     columns.splice(2, 0, {
-        title: 'UserID',
-        key: 'index',
+        title: 'userId',
+        key: 'UserID',
+        dataIndex: 'userId',
         width: '5%',
         editable: false,
         align: 'center',
-        render: (value, item, index) => {
-            return item.userId;
+        render: (item) => {
+            return item;
         },
     });
 
@@ -317,7 +326,7 @@ const ListEntries = () => {
             ...col,
             onCell: (record) => ({
                 record,
-                inputType: col.dataIndex === 'age' ? 'number' : 'text',
+                inputType: ['name', 'createdAt'].includes(col.dataIndex) ? 'text' : 'number',
                 dataIndex: col.dataIndex,
                 title: col.title,
                 editing: record.id === editingKey,
@@ -329,6 +338,7 @@ const ListEntries = () => {
         <div className={styles.Container}>
             <Form form={form} component={false}>
                 <Table
+                    rowKey={obj => obj.id}
                     bordered
                     components={{
                         body: {
@@ -337,15 +347,15 @@ const ListEntries = () => {
                     }}
                     dataSource={foodItems}
                     columns={mergedColumns}
-                    rowClassName="editable-row"
+                    rowClassName='editable-row'
                     pagination={false}
                 />
             </Form>
 
-            <Row justify="center" gutter={[0, 20]} style={{padding: '59px'}}>
-                <Pagination current={page} onChange={setPage} total={10 * totalPages} showSizeChanger={false}/>
+            <Row justify='center' style={{ padding: '59px' }}>
+                <Pagination current={page} onChange={setPage} total={10 * totalPages} showSizeChanger={false} />
             </Row>
-            <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')}/>
+            <AddMeal isModelOpen={activeModalId === modalIds.ADD_FOOD} closeModal={() => setActiveModalId('')} />
         </div>
     );
 };
